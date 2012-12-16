@@ -1,0 +1,8 @@
+*.o
+*.tar.gz
+SOURCES
+SPECS
+RPMS
+SRPMS
+BUILD
+*.rpm
