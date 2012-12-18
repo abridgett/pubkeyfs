@@ -39,7 +39,14 @@
     dn   = "cn=root,dc=example,dc=com";
     pass = secret;
     base = "ou=users,dc=example,dc=com";
-    key_attr = "ssh_public_keys";
+    key_attr = "sshPublicKey";
+    
+    
+### key_attr
+The `key_attr` setting should match the name of the LDAP attribute that you are
+using to store user ssh public keys in the directory. Any attribute will do, but
+the [OpenLDAP Public Key schema](http://code.google.com/p/openssh-lpk/source/browse/trunk/schemas/openssh-lpk_openldap.schema)
+from the openssh-lpk project works great.
 
 ## Example Usage
 
