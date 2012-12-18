@@ -57,15 +57,18 @@ int pkfs_getattr(const char *path, struct stat *stbuf)
     struct pkfs_pubkey *publickey = malloc(sizeof(struct pkfs_pubkey));
 
     if (get_public_key(uid, publickey, config) != 0) {
-      free(publickey);
+      stbuf->st_size = 0;  
+    } else {
+      stbuf->st_size = publickey->size;
     }
-
+    
+    free(publickey);
     time_t current_time = time(NULL);
+    
     stbuf->st_uid = geteuid();
     stbuf->st_gid = getegid();
     stbuf->st_mode = S_IFREG | 0444;
     stbuf->st_nlink = 1;
-    stbuf->st_size = publickey->size;
     stbuf->st_ctime = current_time;
     stbuf->st_mtime = current_time;
     stbuf->st_atime = current_time;
