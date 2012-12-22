@@ -19,7 +19,7 @@ int get_public_key(const char *uid, struct pkfs_pubkey *pubkey, struct pkfs_conf
   LDAPMessage *entry = NULL;
   LDAP *ldap_conn = NULL;
   BerElement* ber = NULL;
-  
+
   int ldap_error;
   int desired_version = LDAP_VERSION3;
 
@@ -33,11 +33,13 @@ int get_public_key(const char *uid, struct pkfs_pubkey *pubkey, struct pkfs_conf
   char filter[MAX_FILTER];
   sprintf(filter, "(uid=%s)", uid);
 
-  if (ldap_initialize(&ldap_conn, config->uri) != LDAP_SUCCESS) {
-    return 1; 
-  } else {
-    ldap_set_option(ldap_conn, LDAP_OPT_PROTOCOL_VERSION, &desired_version);
-    ldap_bind_s(ldap_conn, config->dn, config->pass, LDAP_AUTH_SIMPLE);
+  ldap_initialize(&ldap_conn, config->uri);
+  ldap_set_option(ldap_conn, LDAP_OPT_PROTOCOL_VERSION, &desired_version);
+
+  ldap_error = ldap_bind_s(ldap_conn, config->dn, config->pass, LDAP_AUTH_SIMPLE);
+  if (ldap_error < 0) {
+    syslog(LOG_ERR, "Get public key failed: LDAP connection error");
+    return -1;
   }
 
   ldap_error = ldap_search_ext_s(ldap_conn, config->base, LDAP_SCOPE_SUBTREE,
@@ -54,7 +56,7 @@ int get_public_key(const char *uid, struct pkfs_pubkey *pubkey, struct pkfs_conf
 
     pubkey->key = strdup(vals[0]);
     pubkey->size = strlen(vals[0]);
-  
+
     ldap_msgfree(result);
     return 0;
   }
@@ -66,6 +68,7 @@ int ldap_user_check(const char *uid, struct pkfs_config *config)
   LDAPMessage *result = NULL;
 
   int count;
+  int ldap_error;
   int desired_version = LDAP_VERSION3;
 
   char *attrs[] = {
@@ -76,11 +79,13 @@ int ldap_user_check(const char *uid, struct pkfs_config *config)
   char filter[MAX_FILTER];
   sprintf(filter, "(uid=%s)", uid);
 
-  if (ldap_initialize(&ldap_conn, config->uri) != LDAP_SUCCESS) {
-    return -1; 
-  } else {
-    ldap_set_option(ldap_conn, LDAP_OPT_PROTOCOL_VERSION, &desired_version);
-    ldap_bind_s(ldap_conn, config->dn, config->pass, LDAP_AUTH_SIMPLE);
+  ldap_initialize(&ldap_conn, config->uri);
+  ldap_set_option(ldap_conn, LDAP_OPT_PROTOCOL_VERSION, &desired_version);
+
+  ldap_error = ldap_bind_s(ldap_conn, config->dn, config->pass, LDAP_AUTH_SIMPLE);
+  if (ldap_error < 0) {
+    syslog(LOG_ERR, "User check failed: LDAP connection error");
+    return -1;
   }
 
   ldap_search_ext_s(ldap_conn, config->base, LDAP_SCOPE_SUBTREE,
