@@ -15,18 +15,25 @@ void initialize_config(struct pkfs_config *config)
 {
   syslog(LOG_DEBUG, "Initializing pkfs config");
 
+  int error;
   config_t cfg;
   config_t *cf;
 
   cf = &cfg;
   config_init(cf);
-  config_read_file(cf, "/etc/pkfs.conf");
+
+  error = config_read_file(cf, "/etc/pkfs.conf");
+
+  if (error == CONFIG_FALSE) {
+    syslog(LOG_ERR, "Cannot load /etc/pkfs.conf");
+    return;
+  }
 
   const char *uri = NULL;
   config_lookup_string(cf, "uri", &uri);
   strncpy(config->uri, uri, MAX_CONFIG);
 
-  const char *dn = NULL; 
+  const char *dn = NULL;
   config_lookup_string(cf, "dn", &dn);
   strncpy(config->dn, dn, MAX_CONFIG);
 
