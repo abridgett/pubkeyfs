@@ -1,17 +1,17 @@
 /*
  Public Key File System (PKFS)
  Copyright (C) 2012 Kelsey Hightower <kelsey.hightower@gmail.com>
- 
+
  This program can be distributed under the terms of the MIT license.
 
------------  ----    ---- ------------ ------------ 
-************ ****   ****  ************ ************ 
----      --- ----  ----   ----         ----         
-************ *********    ************ ************ 
------------  ---------    ------------ ------------ 
-****         ****  ****   ****                ***** 
-----         ----   ----  ----         ------------ 
-****         ****    **** ****         ************ 
+-----------  ----    ---- ------------ ------------
+************ ****   ****  ************ ************
+---      --- ----  ----   ----         ----
+************ *********    ************ ************
+-----------  ---------    ------------ ------------
+****         ****  ****   ****                *****
+----         ----   ----  ----         ------------
+****         ****    **** ****         ************
 
 */
 #define FUSE_USE_VERSION 28
@@ -40,12 +40,11 @@ void *pkfs_init(struct fuse_conn_info *conn)
 int pkfs_getattr(const char *path, struct stat *stbuf)
 {
   int res = 0;
-  char uid[UID_MAX];
+  char *uid = NULL;
   memset(stbuf, 0, sizeof(struct stat));
-  
-  // Derive the uid from the path name
-  uid_from_path(path, uid);
-  
+
+  uid_from_path(path, &uid);
+
   // Gather LDAP connection details
   struct fuse_context *fc = fuse_get_context();
   struct pkfs_config *config = fc->private_data;
@@ -54,17 +53,17 @@ int pkfs_getattr(const char *path, struct stat *stbuf)
     stbuf->st_mode = S_IFDIR | 0755;
     stbuf->st_nlink = 2;
   } else if (ldap_user_check(uid, config) == 0) {
-    struct pkfs_pubkey *publickey = malloc(sizeof(struct pkfs_pubkey));
+    pubkeys_t *publickey = malloc(sizeof(pubkeys_t));
 
-    if (get_public_key(uid, publickey, config) != 0) {
-      stbuf->st_size = 0;  
+    if (get_public_keys(uid, publickey, config) != 0) {
+      stbuf->st_size = 0;
     } else {
       stbuf->st_size = publickey->size;
     }
-    
+
     free(publickey);
     time_t current_time = time(NULL);
-    
+
     stbuf->st_uid = geteuid();
     stbuf->st_gid = getegid();
     stbuf->st_mode = S_IFREG | 0444;
@@ -80,29 +79,29 @@ int pkfs_getattr(const char *path, struct stat *stbuf)
 }
 
 static int pkfs_open(const char *path, struct fuse_file_info *fi)
-{ 
+{
   int fd;
   char *pubkey_temp_file = NULL;
-  char uid[UID_MAX];
+  char *uid = NULL;
 
   struct fuse_context *fc = fuse_get_context();
-  struct pkfs_config *config = fc->private_data;
-  struct pkfs_pubkey *publickey = malloc(sizeof(struct pkfs_pubkey));
+  pkfs_config_t *config = fc->private_data;
+  pubkeys_t *publickey = malloc(sizeof(pubkeys_t));
 
-  uid_from_path(path, uid);
+  uid_from_path(path, &uid);
 
-  if (get_public_key(uid, publickey, config) != 0) {
+  if (get_public_keys(uid, publickey, config) != 0) {
     free(publickey);
     return -ENOENT;
   }
-   
+
   pubkey_temp_file = strdup("/tmp/pkfs-XXXXXX");
   fd = mkstemp(pubkey_temp_file);
-    
-  write(fd, publickey->key, strlen(publickey->key)); 
+
+  write(fd, publickey->keys, strlen(publickey->keys));
   fi->fh = (unsigned long)pubkey_temp_file;
   free(publickey);
-    
+
   return 0;
 }
 
@@ -118,13 +117,13 @@ static int pkfs_release(const char *path, struct fuse_file_info *fi)
   return 0;
 }
 
-static int pkfs_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi) 
+static int pkfs_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi)
 {
   int fd, res;
-  
+
   fd = open(CAST_PATH fi->fh, O_RDONLY);
   if (fd == -1) return -errno;
-  
+
   res = pread(fd, buf, size, offset);
   if (res == -1) res = -errno;
 
@@ -167,6 +166,5 @@ static struct fuse_operations pkfs_oper = {
 
 int main(int argc, char *argv[])
 {
-  // FIXME Force single user mode
   return fuse_main(argc, argv, &pkfs_oper, NULL);
 }

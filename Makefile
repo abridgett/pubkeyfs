@@ -1,5 +1,5 @@
 NAME=pubkeyfs
-CC=gcc -Wall
+CC=clang -Wall
 CFLAGS=-std=c99 -pthread
 LIBS=-lldap -lrt -ldl -lfuse -lconfig
 EXTRA_CFLAGS=-D_FILE_OFFSET_BITS=64
@@ -12,7 +12,7 @@ RPMBUILD := $(shell if test -f /usr/bin/rpmbuild ; then echo /usr/bin/rpmbuild ;
 
 RPM_DEFINES =   --define "_specdir $(shell pwd)/SPECS" --define "_rpmdir $(shell pwd)/RPMS" --define "_sourcedir $(shell pwd)/SOURCES" --define  "_srcrpmdir $(shell pwd)/SRPMS" --define "_builddir $(shell pwd)/BUILD"
 
-MAKE_DIRS= $(shell pwd)/SPECS $(shell pwd)/SOURCES $(shell pwd)/BUILD $(shell pwd)/SRPMS $(shell pwd)/RPMS 
+MAKE_DIRS= $(shell pwd)/SPECS $(shell pwd)/SOURCES $(shell pwd)/BUILD $(shell pwd)/SRPMS $(shell pwd)/RPMS
 
 .PHONEY: install srpm
 
@@ -25,7 +25,7 @@ pkfs.o: pkfs.c
 	$(CC) $(EXTRA_CFLAGS) -c pkfs.c
 
 ldapapi.o: ldapapi.c
-	$(CC) -c ldapapi.c
+	$(CC) $(CFLAGS) -c ldapapi.c
 
 utils.o: utils.c
 	$(CC) -c utils.c
