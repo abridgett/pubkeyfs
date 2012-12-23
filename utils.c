@@ -1,9 +1,7 @@
 /*
  * Public Key File System (PKFS)
- * Copyright (C) 2012 Kelsey Hightower <kelsey.hightower@gmail.com>
  *
- * This program can be distributed under the terms of the MIT license.
- *
+ * Copyright (C) Kelsey Hightower, 2012
  */
 #include <libconfig.h>
 #include <string.h>
@@ -11,53 +9,43 @@
 #include <syslog.h>
 #include "utils.h"
 
-void initialize_config(struct pkfs_config *config)
+#define PKFS_CONFIG_FILE "/etc/pkfs.conf"
+
+
+static void set_config_value(config_t *cf, const char *key, char **value)
+{
+  const char *s = NULL;
+  config_lookup_string(cf, key, &s);
+  *value = strdup(s);
+}
+
+void initialize_config(pkfs_config_t *pkfs_config)
 {
   syslog(LOG_DEBUG, "Initializing pkfs config");
 
-  int error;
-  config_t cfg;
-  config_t *cf;
-
-  cf = &cfg;
+  config_t config;
+  config_t *cf = &config;
   config_init(cf);
 
-  error = config_read_file(cf, "/etc/pkfs.conf");
-
-  if (error == CONFIG_FALSE) {
-    syslog(LOG_ERR, "Cannot load /etc/pkfs.conf");
+  if (config_read_file(cf, PKFS_CONFIG_FILE) == CONFIG_FALSE) {
+    syslog(LOG_ERR, "Cannot load %s", PKFS_CONFIG_FILE);
     return;
   }
 
-  const char *uri = NULL;
-  config_lookup_string(cf, "uri", &uri);
-  strncpy(config->uri, uri, MAX_CONFIG);
-
-  const char *dn = NULL;
-  config_lookup_string(cf, "dn", &dn);
-  strncpy(config->dn, dn, MAX_CONFIG);
-
-  const char *pass = NULL;
-  config_lookup_string(cf, "pass", &pass);
-  strncpy(config->pass, pass, MAX_CONFIG);
-
-  const char *base = NULL;
-  config_lookup_string(cf, "base", &base);
-  strncpy(config->base, base, MAX_CONFIG);
-
-  const char *key_attribute = NULL;
-  config_lookup_string(cf, "key_attr", &key_attribute);
-  strncpy(config->key_attribute, key_attribute, MAX_CONFIG);
+  set_config_value(cf, "uri",  &pkfs_config->uri);
+  set_config_value(cf, "dn",   &pkfs_config->dn);
+  set_config_value(cf, "pass", &pkfs_config->pass);
+  set_config_value(cf, "base", &pkfs_config->base);
+  set_config_value(cf, "key_attr", &pkfs_config->key_attr);
 
   config_destroy(cf);
 }
 
-void uid_from_path(const char *path, char uid[])
+void uid_from_path(const char *path, char **uid)
 {
   if (strncmp(path, "/", 1) == 0) {
-    strncpy(uid, path + 1, UID_MAX - 1);
+    *uid = strdup(path + 1);
   } else {
-    strncpy(uid, path, UID_MAX - 1);
+    *uid = strdup(path);
   }
 }
-

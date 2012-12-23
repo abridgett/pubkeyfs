@@ -1,9 +1,7 @@
 /*
  * Public Key File System (PKFS)
- * Copyright (C) 2012 Kelsey Hightower <kelsey.hightower@gmail.com>
  *
- * This program can be distributed under the terms of the MIT license.
- *
+ * Copyright (C) Kelsey Hightower, 2012
  */
 #ifndef __PKFS_LDAPAPI_H__
 #define __PKFS_LDAPAPI_H__
@@ -13,13 +11,14 @@
 #define MAX_FILTER 256
 #define CAST_PATH (char*)(ptrdiff_t)
 
-struct pkfs_pubkey {
-  char *key;
+struct pubkeys {
+  char *keys;
   int size;
 };
 
-int ldap_user_check(const char *uid, struct pkfs_config *config);
+typedef struct pubkeys pubkeys_t;
 
-int get_public_key(const char *uid, struct pkfs_pubkey *pubkey, struct pkfs_config *config);
+int ldap_user_check(const char *uid, pkfs_config_t *config);
+int get_public_keys(const char *uid, pubkeys_t *pubkeys, pkfs_config_t *config);
 
 #endif

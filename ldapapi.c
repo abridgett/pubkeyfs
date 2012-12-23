@@ -1,95 +1,71 @@
 /*
  * Public Key File System (PKFS)
- * Copyright (C) 2012 Kelsey Hightower <kelsey.hightower@gmail.com>
  *
- * This program can be distributed under the terms of the MIT license.
- *
+ * Copyright (C) Kelsey Hightower, 2012
  */
 #include <ldap.h>
 #include <stdio.h>
 #include <string.h>
 #include <syslog.h>
+#include <stdlib.h>
 
 #include "ldapapi.h"
 #include "utils.h"
 
-int get_public_key(const char *uid, struct pkfs_pubkey *pubkey, struct pkfs_config *config)
+
+static void init_pubkeys_from_ldap_values(char **vals, pubkeys_t *pubkey)
 {
-  LDAPMessage *result = NULL;
-  LDAPMessage *entry = NULL;
-  LDAP *ldap_conn = NULL;
-  BerElement* ber = NULL;
+  int total_size_of_keys = 0;
 
-  int ldap_error;
-  int desired_version = LDAP_VERSION3;
-
-  char** vals;
-  char* attr;
-  char *attrs[] = {
-    config->key_attribute,
-    NULL
-  };
-
-  char filter[MAX_FILTER];
-  sprintf(filter, "(uid=%s)", uid);
-
-  ldap_initialize(&ldap_conn, config->uri);
-  ldap_set_option(ldap_conn, LDAP_OPT_PROTOCOL_VERSION, &desired_version);
-
-  ldap_error = ldap_bind_s(ldap_conn, config->dn, config->pass, LDAP_AUTH_SIMPLE);
-  if (ldap_error < 0) {
-    syslog(LOG_ERR, "Get public key failed: LDAP connection error");
-    return -1;
+  for(int i=0; vals[i]; i++) {
+    total_size_of_keys += strlen(vals[i]);
   }
 
-  ldap_error = ldap_search_ext_s(ldap_conn, config->base, LDAP_SCOPE_SUBTREE,
-                                 filter, attrs, 0, NULL, NULL, NULL, 1, &result);
+  char *keys = malloc(total_size_of_keys);
+  strncpy(keys, vals[0], strlen(vals[0]));
 
-  if (ldap_error != 0) {
-    syslog(LOG_ERR, "%s", ldap_err2string(ldap_error));
-    ldap_msgfree(result);
-    return -1;
-  } else {
-    entry = ldap_first_entry(ldap_conn, result);
-    attr  = ldap_first_attribute(ldap_conn, entry, &ber);
-    vals  = (char **)ldap_get_values(ldap_conn, entry, attr);
-
-    pubkey->key = strdup(vals[0]);
-    pubkey->size = strlen(vals[0]);
-
-    ldap_msgfree(result);
-    return 0;
+  for(int i=1; vals[i]; i++) {
+    strncat(keys, vals[i], strlen(vals[i]));
   }
+
+  pubkey->keys = strdup(keys);
+  pubkey->size = strlen(keys);
 }
 
-int ldap_user_check(const char *uid, struct pkfs_config *config)
+static LDAP *get_ldap_connection(pkfs_config_t *config)
 {
+  int ldap_error;
+  int desired_version = LDAP_VERSION3;
+  LDAP *ldap_conn = NULL;
+
+  ldap_initialize(&ldap_conn, config->uri);
+  ldap_set_option(ldap_conn, LDAP_OPT_PROTOCOL_VERSION, &desired_version);
+  ldap_error = ldap_bind_s(ldap_conn, config->dn, config->pass,
+                 LDAP_AUTH_SIMPLE);
+
+  if (ldap_error < 0) {
+    syslog(LOG_ERR, "LDAP connection error");
+    return NULL;
+  }
+
+  return ldap_conn;
+}
+
+int ldap_user_check(const char *uid, pkfs_config_t *config)
+{
+  int count;
   LDAP *ldap_conn = NULL;
   LDAPMessage *result = NULL;
 
-  int count;
-  int ldap_error;
-  int desired_version = LDAP_VERSION3;
-
-  char *attrs[] = {
-    "uid",
-    NULL
-  };
+  char *attrs[] = { "uid", NULL };
 
   char filter[MAX_FILTER];
   sprintf(filter, "(uid=%s)", uid);
 
-  ldap_initialize(&ldap_conn, config->uri);
-  ldap_set_option(ldap_conn, LDAP_OPT_PROTOCOL_VERSION, &desired_version);
-
-  ldap_error = ldap_bind_s(ldap_conn, config->dn, config->pass, LDAP_AUTH_SIMPLE);
-  if (ldap_error < 0) {
-    syslog(LOG_ERR, "User check failed: LDAP connection error");
-    return -1;
-  }
+  ldap_conn = get_ldap_connection(config);
 
   ldap_search_ext_s(ldap_conn, config->base, LDAP_SCOPE_SUBTREE,
-                    filter, attrs, 0, NULL, NULL, NULL, 1, &result);
+    filter, attrs, 0, NULL, NULL, NULL, 1, &result);
 
   count = ldap_count_entries(ldap_conn, result);
   if (count == -1) {
@@ -97,4 +73,41 @@ int ldap_user_check(const char *uid, struct pkfs_config *config)
   }
 
   return count > 0 ? 0 : 1;
+}
+
+int get_public_keys(const char *uid, pubkeys_t *pubkeys, pkfs_config_t *config)
+{
+  LDAP *ldap_conn = NULL;
+  LDAPMessage *result = NULL;
+  LDAPMessage *entry  = NULL;
+  BerElement* ber = NULL;
+
+  int ldap_error;
+
+  char **vals;
+  char *attr;
+  char *attrs[] = { config->key_attr, NULL };
+
+  char filter[MAX_FILTER];
+  sprintf(filter, "(uid=%s)", uid);
+
+  ldap_conn = get_ldap_connection(config);
+
+  ldap_error = ldap_search_ext_s(ldap_conn, config->base, LDAP_SCOPE_SUBTREE,
+                 filter, attrs, 0, NULL, NULL, NULL, 1, &result);
+
+  if (ldap_error != 0) {
+    syslog(LOG_ERR, "%s", ldap_err2string(ldap_error));
+    ldap_msgfree(result);
+    return -1;
+  }
+
+  entry = ldap_first_entry(ldap_conn, result);
+  attr  = ldap_first_attribute(ldap_conn, entry, &ber);
+  vals  = (char **)ldap_get_values(ldap_conn, entry, attr);
+
+  init_pubkeys_from_ldap_values(vals, pubkeys);
+
+  ldap_msgfree(result);
+  return 0;
 }
