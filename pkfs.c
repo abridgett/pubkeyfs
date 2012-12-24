@@ -121,7 +121,8 @@ static int pkfs_release(const char *path, struct fuse_file_info *fi)
   return 0;
 }
 
-static int pkfs_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi)
+static int pkfs_read(const char *path, char *buf, size_t size, off_t offset,
+             struct fuse_file_info *fi)
 {
   int fd, res;
 
@@ -140,7 +141,8 @@ static int pkfs_access(const char *path, int mask)
   return 0;
 }
 
-static int pkfs_write(const char* path, const char *buf, size_t size, off_t offset, struct fuse_file_info* fi)
+static int pkfs_write(const char* path, const char *buf, size_t size,
+             off_t offset, struct fuse_file_info* fi)
 {
   return -EROFS;
 }
@@ -150,7 +152,8 @@ static int pkfs_truncate(const char* path, off_t offset)
   return -EROFS;
 }
 
-static int pkfs_create(const char * path, mode_t mode, struct fuse_file_info * fi)
+static int pkfs_create(const char * path, mode_t mode,
+             struct fuse_file_info * fi)
 {
   return -EROFS;
 }
