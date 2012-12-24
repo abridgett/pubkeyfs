@@ -37,6 +37,26 @@ void *pkfs_init(struct fuse_conn_info *conn)
   return config;
 }
 
+static void initialize_directory_stats(struct stat **stbuf)
+{
+  (*stbuf)->st_mode = S_IFDIR | 0755;
+  (*stbuf)->st_nlink = 2;
+}
+
+static void initialize_file_stats(struct stat **stbuf, int size)
+{
+  time_t current_time = time(NULL);
+
+  (*stbuf)->st_size = size;
+  (*stbuf)->st_uid = geteuid();
+  (*stbuf)->st_gid = getegid();
+  (*stbuf)->st_mode = S_IFREG | 0444;
+  (*stbuf)->st_nlink = 1;
+  (*stbuf)->st_ctime = current_time;
+  (*stbuf)->st_mtime = current_time;
+  (*stbuf)->st_atime = current_time;
+}
+
 int pkfs_getattr(const char *path, struct stat *stbuf)
 {
   int res = 0;
@@ -50,31 +70,15 @@ int pkfs_getattr(const char *path, struct stat *stbuf)
   struct pkfs_config *config = fc->private_data;
 
   if (strcmp(path, "/") == 0) {
-    stbuf->st_mode = S_IFDIR | 0755;
-    stbuf->st_nlink = 2;
+    initialize_directory_stats(&stbuf);
   } else if (ldap_user_check(uid, config) == 0) {
-    pubkeys_t *publickey = malloc(sizeof(pubkeys_t));
-
-    if (get_public_keys(uid, publickey, config) != 0) {
-      stbuf->st_size = 0;
-    } else {
-      stbuf->st_size = publickey->size;
-    }
-
-    free(publickey);
-    time_t current_time = time(NULL);
-
-    stbuf->st_uid = geteuid();
-    stbuf->st_gid = getegid();
-    stbuf->st_mode = S_IFREG | 0444;
-    stbuf->st_nlink = 1;
-    stbuf->st_ctime = current_time;
-    stbuf->st_mtime = current_time;
-    stbuf->st_atime = current_time;
+    pubkeys_t *pk = malloc(sizeof(pubkeys_t));
+    int size = (get_public_keys(uid, pk, config) != 0) ? 0 : pk->size;
+    initialize_file_stats(&stbuf, size);
+    free(pk);
   } else {
     res = -ENOENT;;
   }
-
   return res;
 }
 
