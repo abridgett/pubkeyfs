@@ -33,7 +33,6 @@ void *pkfs_init(struct fuse_conn_info *conn)
   struct pkfs_config *config;
   config = malloc(sizeof(struct pkfs_config));
   initialize_config(config);
-
   return config;
 }
 
@@ -72,13 +71,16 @@ int pkfs_getattr(const char *path, struct stat *stbuf)
   if (strcmp(path, "/") == 0) {
     initialize_directory_stats(&stbuf);
   } else if (ldap_user_check(uid, config) == 0) {
-    pubkeys_t *pk = malloc(sizeof(pubkeys_t));
+    pubkeys_t *pk = calloc(1, sizeof(pubkeys_t));
     int size = (get_public_keys(uid, pk, config) != 0) ? 0 : pk->size;
     initialize_file_stats(&stbuf, size);
+    free(pk->keys);
     free(pk);
   } else {
     res = -ENOENT;;
   }
+
+  free(uid);
   return res;
 }
 
@@ -90,22 +92,25 @@ static int pkfs_open(const char *path, struct fuse_file_info *fi)
 
   struct fuse_context *fc = fuse_get_context();
   pkfs_config_t *config = fc->private_data;
-  pubkeys_t *publickey = malloc(sizeof(pubkeys_t));
+  pubkeys_t *pk = calloc(1, sizeof(pubkeys_t));
 
   uid_from_path(path, &uid);
 
-  if (get_public_keys(uid, publickey, config) != 0) {
-    free(publickey);
+  if (get_public_keys(uid, pk, config) != 0) {
+    free(pk);
     return -ENOENT;
   }
 
   pubkey_temp_file = strdup("/tmp/pkfs-XXXXXX");
   fd = mkstemp(pubkey_temp_file);
 
-  write(fd, publickey->keys, strlen(publickey->keys));
+  write(fd, pk->keys, strlen(pk->keys));
+  close(fd);
   fi->fh = (unsigned long)pubkey_temp_file;
-  free(publickey);
 
+  free(pk->keys);
+  free(pk);
+  free(uid);
   return 0;
 }
 

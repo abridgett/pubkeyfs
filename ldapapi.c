@@ -8,6 +8,7 @@
 #include <string.h>
 #include <syslog.h>
 #include <stdlib.h>
+#include <sys/time.h>
 
 #include "ldapapi.h"
 #include "utils.h"
@@ -18,10 +19,10 @@ static void init_pubkeys_from_ldap_values(char **vals, pubkeys_t *pubkey)
   int total_size_of_keys = 0;
 
   for(int i=0; vals[i]; i++) {
-    total_size_of_keys += strlen(vals[i]);
+    total_size_of_keys += strlen(vals[i]) + 1;
   }
 
-  char *keys = malloc(total_size_of_keys);
+  char *keys = calloc(1, total_size_of_keys);
   strncpy(keys, vals[0], strlen(vals[0]));
 
   for(int i=1; vals[i]; i++) {
@@ -29,7 +30,8 @@ static void init_pubkeys_from_ldap_values(char **vals, pubkeys_t *pubkey)
   }
 
   pubkey->keys = strdup(keys);
-  pubkey->size = strlen(keys);
+  pubkey->size = total_size_of_keys;
+  free(keys);
 }
 
 static LDAP *get_ldap_connection(pkfs_config_t *config)
@@ -53,7 +55,13 @@ static LDAP *get_ldap_connection(pkfs_config_t *config)
 
 int ldap_user_check(const char *uid, pkfs_config_t *config)
 {
-  int count;
+  int count = 0;
+
+  struct timeval timeout;
+  timeout.tv_sec = config->timeout;
+  timeout.tv_usec = 0;
+
+  int ldap_error;
   LDAP *ldap_conn = NULL;
   LDAPMessage *result = NULL;
 
@@ -63,16 +71,21 @@ int ldap_user_check(const char *uid, pkfs_config_t *config)
   sprintf(filter, "(uid=%s)", uid);
 
   ldap_conn = get_ldap_connection(config);
+  ldap_error = ldap_search_ext_s(ldap_conn, config->base, LDAP_SCOPE_SUBTREE,
+                 filter, attrs, 0, NULL, NULL, &timeout, 1, &result);
 
-  ldap_search_ext_s(ldap_conn, config->base, LDAP_SCOPE_SUBTREE,
-    filter, attrs, 0, NULL, NULL, NULL, 1, &result);
-
-  count = ldap_count_entries(ldap_conn, result);
-  if (count == -1) {
+  if (ldap_error != 0) {
+    syslog(LOG_ERR, "%s", ldap_err2string(ldap_error));
+    ldap_msgfree(result);
     return -1;
   }
+  count = ldap_count_entries(ldap_conn, result);
 
-  return count > 0 ? 0 : 1;
+  int res = count > 0 ? 0 : 1;
+
+  ldap_msgfree(result);
+  ldap_unbind(ldap_conn);
+  return res;
 }
 
 int get_public_keys(const char *uid, pubkeys_t *pubkeys, pkfs_config_t *config)
@@ -81,6 +94,10 @@ int get_public_keys(const char *uid, pubkeys_t *pubkeys, pkfs_config_t *config)
   LDAPMessage *result = NULL;
   LDAPMessage *entry  = NULL;
   BerElement* ber = NULL;
+
+  struct timeval timeout;
+  timeout.tv_sec = config->timeout;
+  timeout.tv_usec = 0;
 
   int ldap_error;
 
@@ -92,13 +109,12 @@ int get_public_keys(const char *uid, pubkeys_t *pubkeys, pkfs_config_t *config)
   sprintf(filter, "(uid=%s)", uid);
 
   ldap_conn = get_ldap_connection(config);
-
   ldap_error = ldap_search_ext_s(ldap_conn, config->base, LDAP_SCOPE_SUBTREE,
-                 filter, attrs, 0, NULL, NULL, NULL, 1, &result);
+                 filter, attrs, 0, NULL, NULL, &timeout, 1, &result);
 
   if (ldap_error != 0) {
     syslog(LOG_ERR, "%s", ldap_err2string(ldap_error));
-    ldap_msgfree(result);
+    ldap_unbind(ldap_conn);
     return -1;
   }
 
@@ -108,6 +124,10 @@ int get_public_keys(const char *uid, pubkeys_t *pubkeys, pkfs_config_t *config)
 
   init_pubkeys_from_ldap_values(vals, pubkeys);
 
+  ber_free(ber, 0);
+  ldap_memfree(attr);
+  ldap_value_free(vals);
   ldap_msgfree(result);
+  ldap_unbind(ldap_conn);
   return 0;
 }
