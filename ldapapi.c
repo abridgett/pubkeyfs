@@ -19,7 +19,7 @@ static void init_pubkeys_from_ldap_values(char **vals, pubkeys_t *pubkey)
   int total_size_of_keys = 0;
 
   for(int i=0; vals[i]; i++) {
-    total_size_of_keys += strlen(vals[i]);
+    total_size_of_keys += strlen(vals[i]) + 1;
   }
 
   char *keys = calloc(1, total_size_of_keys);
@@ -30,7 +30,7 @@ static void init_pubkeys_from_ldap_values(char **vals, pubkeys_t *pubkey)
   }
 
   pubkey->keys = strdup(keys);
-  pubkey->size = strlen(keys);
+  pubkey->size = total_size_of_keys;
   free(keys);
 }
 
