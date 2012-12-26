@@ -11,34 +11,23 @@
 
 #define PKFS_CONFIG_FILE "/etc/pkfs.conf"
 
+static void set_config_defaults(pkfs_config_t *config);
+static void set_config_from_file(pkfs_config_t *config, config_t *cf);
 
-static void set_config_value(config_t *cf, const char *key, char **value)
-{
-  const char *s = NULL;
-  config_lookup_string(cf, key, &s);
-  *value = strdup(s);
-}
-
-void initialize_config(pkfs_config_t *pkfs_config)
+void initialize_config(pkfs_config_t *config)
 {
   syslog(LOG_DEBUG, "Initializing pkfs config");
 
-  config_t config;
-  config_t *cf = &config;
-  config_init(cf);
+  config_t cf;
+  config_init(&cf);
 
-  if (config_read_file(cf, PKFS_CONFIG_FILE) == CONFIG_FALSE) {
+  if (config_read_file(&cf, PKFS_CONFIG_FILE) == CONFIG_FALSE) {
     syslog(LOG_ERR, "Cannot load %s", PKFS_CONFIG_FILE);
     return;
   }
 
-  set_config_value(cf, "uri",  &pkfs_config->uri);
-  set_config_value(cf, "dn",   &pkfs_config->dn);
-  set_config_value(cf, "pass", &pkfs_config->pass);
-  set_config_value(cf, "base", &pkfs_config->base);
-  set_config_value(cf, "key_attr", &pkfs_config->key_attr);
-
-  config_destroy(cf);
+  set_config_defaults(config);
+  set_config_from_file(config, &cf);
 }
 
 void uid_from_path(const char *path, char **uid)
@@ -48,4 +37,26 @@ void uid_from_path(const char *path, char **uid)
   } else {
     *uid = strdup(path);
   }
+}
+
+/*============= Utility Functions ================================*/
+
+static void set_config_defaults(pkfs_config_t *config)
+{
+  config->uri = NULL;
+  config->dn = NULL;
+  config->pass = NULL;
+  config->base = NULL;
+  config->timeout = 30;
+  config->key_attr = strdup("sshPublicKey"); 
+}
+
+static void set_config_from_file(pkfs_config_t *config, config_t *cf)
+{
+  config_lookup_string(cf, "uri", &config->uri);
+  config_lookup_string(cf, "dn", &config->dn);
+  config_lookup_string(cf, "pass", &config->pass);
+  config_lookup_string(cf, "base", &config->base);
+  config_lookup_string(cf, "key_attr", &config->key_attr);
+  config_lookup_int(cf, "timeout", &config->timeout);
 }

@@ -6,14 +6,13 @@
 #ifndef __PKFS_UTILS_H__
 #define __PKFS_UTILS_H__
 
-#define MAX_UID 128
-
 struct pkfs_config {
-  char *base;
-  char *dn;
-  char *uri;
-  char *pass;
-  char *key_attr;
+  const char *base;
+  const char *dn;
+  const char *uri;
+  const char *pass;
+  const char *key_attr;
+  long timeout;
 };
 
 typedef struct pkfs_config pkfs_config_t;
