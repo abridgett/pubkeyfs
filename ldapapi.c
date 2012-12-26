@@ -14,23 +14,35 @@
 #include "utils.h"
 
 
-static void init_pubkeys_from_ldap_values(char **vals, pubkeys_t *pubkey)
+static void init_pubkeys_from_ldap_values(char *vals[], pubkeys_t *pubkey)
 {
-  int total_size_of_keys = 0;
+  char *keys = NULL;
+  size_t length = 0;
+  size_t total_length_of_keys = 0;
 
-  for(int i=0; vals[i]; i++) {
-    total_size_of_keys += strlen(vals[i]) + 1;
+  for(int i = 0; vals[i]; i++) {
+    total_length_of_keys += strlen(vals[i]);
+    if (vals[i][strlen(vals[i]) - 1] != '\n') {
+      ++total_length_of_keys; // Add room for newline
+    }
   }
+  ++total_length_of_keys; // Add room for final '\0'
 
-  char *keys = calloc(1, total_size_of_keys);
-  strncpy(keys, vals[0], strlen(vals[0]));
+  keys = malloc(total_length_of_keys);
+  keys[0] = '\0';
 
-  for(int i=1; vals[i]; i++) {
-    strncat(keys, vals[i], strlen(vals[i]));
+  for(int i = 0; vals[i]; i++) {
+    strcat(keys, vals[i]);
+    length = strlen(keys);
+
+    if (keys[length - 1] != '\n') {
+       keys[length] = '\n';
+       keys[length + 1] = '\0';
+    }
   }
 
   pubkey->keys = strdup(keys);
-  pubkey->size = total_size_of_keys;
+  pubkey->size = strlen(keys);
   free(keys);
 }
 
