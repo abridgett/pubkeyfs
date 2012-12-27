@@ -11,10 +11,12 @@
 
 #define PKFS_CONFIG_FILE "/etc/pkfs.conf"
 
-static void set_config_defaults(pkfs_config_t *config);
-static void set_config_from_file(pkfs_config_t *config, config_t *cf);
+static void set_config_defaults(void);
+static void set_config_from_file(config_t *cf);
 
-void initialize_config(pkfs_config_t *config)
+extern pkfs_config_t *config;
+
+void initialize_config(void)
 {
   syslog(LOG_DEBUG, "Initializing pkfs config");
 
@@ -26,8 +28,8 @@ void initialize_config(pkfs_config_t *config)
     return;
   }
 
-  set_config_defaults(config);
-  set_config_from_file(config, &cf);
+  set_config_defaults();
+  set_config_from_file(&cf);
 }
 
 void uid_from_path(const char *path, char **uid)
@@ -41,17 +43,17 @@ void uid_from_path(const char *path, char **uid)
 
 /*============= Utility Functions ================================*/
 
-static void set_config_defaults(pkfs_config_t *config)
+static void set_config_defaults(void)
 {
   config->uri = NULL;
   config->dn = NULL;
   config->pass = NULL;
   config->base = NULL;
   config->timeout = 30;
-  config->key_attr = strdup("sshPublicKey"); 
+  config->key_attr = strdup("sshPublicKey");
 }
 
-static void set_config_from_file(pkfs_config_t *config, config_t *cf)
+static void set_config_from_file(config_t *cf)
 {
   config_lookup_string(cf, "uri", &config->uri);
   config_lookup_string(cf, "dn", &config->dn);

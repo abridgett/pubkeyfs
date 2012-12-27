@@ -17,7 +17,7 @@ struct pkfs_config {
 
 typedef struct pkfs_config pkfs_config_t;
 
-void initialize_config(pkfs_config_t *config);
+void initialize_config(void);
 void uid_from_path(const char *path, char **uid);
 
 #endif

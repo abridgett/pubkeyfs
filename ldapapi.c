@@ -13,6 +13,7 @@
 #include "ldapapi.h"
 #include "utils.h"
 
+extern pkfs_config_t *config;
 
 static void init_pubkeys_from_ldap_values(char *vals[], pubkeys_t *pubkey)
 {
@@ -46,7 +47,7 @@ static void init_pubkeys_from_ldap_values(char *vals[], pubkeys_t *pubkey)
   free(keys);
 }
 
-static LDAP *get_ldap_connection(pkfs_config_t *config)
+static LDAP *get_ldap_connection(void)
 {
   int ldap_error;
   int desired_version = LDAP_VERSION3;
@@ -65,7 +66,7 @@ static LDAP *get_ldap_connection(pkfs_config_t *config)
   return ldap_conn;
 }
 
-int ldap_user_check(const char *uid, pkfs_config_t *config)
+int ldap_user_check(const char *uid)
 {
   int count = 0;
 
@@ -82,7 +83,7 @@ int ldap_user_check(const char *uid, pkfs_config_t *config)
   char filter[MAX_FILTER];
   sprintf(filter, "(uid=%s)", uid);
 
-  ldap_conn = get_ldap_connection(config);
+  ldap_conn = get_ldap_connection();
   ldap_error = ldap_search_ext_s(ldap_conn, config->base, LDAP_SCOPE_SUBTREE,
                  filter, attrs, 0, NULL, NULL, &timeout, 1, &result);
 
@@ -100,7 +101,7 @@ int ldap_user_check(const char *uid, pkfs_config_t *config)
   return res;
 }
 
-int get_public_keys(const char *uid, pubkeys_t *pubkeys, pkfs_config_t *config)
+int get_public_keys(const char *uid, pubkeys_t *pubkeys)
 {
   LDAP *ldap_conn = NULL;
   LDAPMessage *result = NULL;
@@ -120,7 +121,7 @@ int get_public_keys(const char *uid, pubkeys_t *pubkeys, pkfs_config_t *config)
   char filter[MAX_FILTER];
   sprintf(filter, "(uid=%s)", uid);
 
-  ldap_conn = get_ldap_connection(config);
+  ldap_conn = get_ldap_connection();
   ldap_error = ldap_search_ext_s(ldap_conn, config->base, LDAP_SCOPE_SUBTREE,
                  filter, attrs, 0, NULL, NULL, &timeout, 1, &result);
 

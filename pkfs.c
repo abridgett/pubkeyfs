@@ -28,12 +28,13 @@
 #include "utils.h"
 #include "ldapapi.h"
 
+pkfs_config_t *config;
+
 void *pkfs_init(struct fuse_conn_info *conn)
 {
-  struct pkfs_config *config;
-  config = malloc(sizeof(struct pkfs_config));
-  initialize_config(config);
-  return config;
+  config = calloc(1, sizeof(pkfs_config_t));
+  initialize_config();
+  return NULL;
 }
 
 static void initialize_directory_stats(struct stat **stbuf)
@@ -64,15 +65,11 @@ int pkfs_getattr(const char *path, struct stat *stbuf)
 
   uid_from_path(path, &uid);
 
-  // Gather LDAP connection details
-  struct fuse_context *fc = fuse_get_context();
-  struct pkfs_config *config = fc->private_data;
-
   if (strcmp(path, "/") == 0) {
     initialize_directory_stats(&stbuf);
-  } else if (ldap_user_check(uid, config) == 0) {
+  } else if (ldap_user_check(uid) == 0) {
     pubkeys_t *pk = calloc(1, sizeof(pubkeys_t));
-    int size = (get_public_keys(uid, pk, config) != 0) ? 0 : pk->size;
+    int size = (get_public_keys(uid, pk) != 0) ? 0 : pk->size;
     initialize_file_stats(&stbuf, size);
     free(pk->keys);
     free(pk);
@@ -90,13 +87,11 @@ static int pkfs_open(const char *path, struct fuse_file_info *fi)
   char *pubkey_temp_file = NULL;
   char *uid = NULL;
 
-  struct fuse_context *fc = fuse_get_context();
-  pkfs_config_t *config = fc->private_data;
   pubkeys_t *pk = calloc(1, sizeof(pubkeys_t));
 
   uid_from_path(path, &uid);
 
-  if (get_public_keys(uid, pk, config) != 0) {
+  if (get_public_keys(uid, pk) != 0) {
     free(pk);
     return -ENOENT;
   }
