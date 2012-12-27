@@ -15,56 +15,11 @@
 
 extern pkfs_config_t *config;
 
-static void init_pubkeys_from_ldap_values(char *vals[], pubkeys_t *pubkey)
-{
-  char *keys = NULL;
-  size_t length = 0;
-  size_t total_length_of_keys = 0;
+static LDAP *get_ldap_connection(void);
+static void init_pubkeys_from_ldap_values(char *vals[], pubkeys_t *pubkey);
+static size_t calculate_total_length_of_keys(char *vals[]);
+static char *format_public_keys(char *vals[]);
 
-  for(int i = 0; vals[i]; i++) {
-    total_length_of_keys += strlen(vals[i]);
-    if (vals[i][strlen(vals[i]) - 1] != '\n') {
-      ++total_length_of_keys; // Add room for newline
-    }
-  }
-  ++total_length_of_keys; // Add room for final '\0'
-
-  keys = malloc(total_length_of_keys);
-  keys[0] = '\0';
-
-  for(int i = 0; vals[i]; i++) {
-    strcat(keys, vals[i]);
-    length = strlen(keys);
-
-    if (keys[length - 1] != '\n') {
-       keys[length] = '\n';
-       keys[length + 1] = '\0';
-    }
-  }
-
-  pubkey->keys = strdup(keys);
-  pubkey->size = strlen(keys);
-  free(keys);
-}
-
-static LDAP *get_ldap_connection(void)
-{
-  int ldap_error;
-  int desired_version = LDAP_VERSION3;
-  LDAP *ldap_conn = NULL;
-
-  ldap_initialize(&ldap_conn, config->uri);
-  ldap_set_option(ldap_conn, LDAP_OPT_PROTOCOL_VERSION, &desired_version);
-  ldap_error = ldap_bind_s(ldap_conn, config->dn, config->pass,
-                 LDAP_AUTH_SIMPLE);
-
-  if (ldap_error < 0) {
-    syslog(LOG_ERR, "LDAP connection error");
-    return NULL;
-  }
-
-  return ldap_conn;
-}
 
 int ldap_user_check(const char *uid)
 {
@@ -143,4 +98,65 @@ int get_public_keys(const char *uid, pubkeys_t *pubkeys)
   ldap_msgfree(result);
   ldap_unbind(ldap_conn);
   return 0;
+}
+
+
+//==== Utility Functions ====================================================
+
+static LDAP *get_ldap_connection(void)
+{
+  int ldap_error;
+  int desired_version = LDAP_VERSION3;
+  LDAP *ldap_conn = NULL;
+
+  ldap_initialize(&ldap_conn, config->uri);
+  ldap_set_option(ldap_conn, LDAP_OPT_PROTOCOL_VERSION, &desired_version);
+  ldap_error = ldap_bind_s(ldap_conn, config->dn, config->pass,
+                 LDAP_AUTH_SIMPLE);
+
+  if (ldap_error < 0) {
+    syslog(LOG_ERR, "LDAP connection error");
+    return NULL;
+  }
+  return ldap_conn;
+}
+
+static void init_pubkeys_from_ldap_values(char *vals[], pubkeys_t *pubkey)
+{
+  char *keys = format_public_keys(vals);
+  pubkey->keys = strdup(keys);
+  pubkey->size = strlen(keys);
+  free(keys);
+}
+
+static char *format_public_keys(char *vals[])
+{
+  size_t length = 0;
+  char *keys = calloc(1, calculate_total_length_of_keys(vals));
+  keys[0] = '\0';
+
+  for(int i = 0; vals[i]; i++) {
+    strcat(keys, vals[i]);
+    length = strlen(keys);
+
+    if (keys[length - 1] != '\n') {
+       keys[length] = '\n';
+       keys[length + 1] = '\0';
+    }
+  }
+  return keys;
+}
+
+static size_t calculate_total_length_of_keys(char *vals[])
+{
+  size_t total = 0;
+
+  for(int i = 0; vals[i]; i++) {
+    total += strlen(vals[i]);
+    if (vals[i][strlen(vals[i]) - 1] != '\n') {
+      ++total; // Add room for newline
+    }
+  }
+  ++total; // Add room for final '\0'
+  return total;
 }
