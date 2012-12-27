@@ -41,8 +41,6 @@ void uid_from_path(const char *path, char **uid)
   }
 }
 
-/*============= Utility Functions ================================*/
-
 static void set_config_defaults(void)
 {
   config->uri = NULL;
