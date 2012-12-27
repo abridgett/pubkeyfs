@@ -15,7 +15,9 @@
 
 extern pkfs_config_t *config;
 
-static LDAP *get_ldap_connection(void);
+static void get_ldap_connection(LDAP **ldap_conn);
+static void get_ldap_results(LDAP *ldap_conn, const char *uid, const char *attr,
+              LDAPMessage **results);
 static void init_pubkeys_from_ldap_values(char *vals[], pubkeys_t *pubkey);
 static size_t calculate_total_length_of_keys(char *vals[]);
 static char *format_public_keys(char *vals[]);
@@ -23,79 +25,37 @@ static char *format_public_keys(char *vals[]);
 
 int ldap_user_check(const char *uid)
 {
-  int count = 0;
-
-  struct timeval timeout;
-  timeout.tv_sec = config->timeout;
-  timeout.tv_usec = 0;
-
-  int ldap_error;
   LDAP *ldap_conn = NULL;
-  LDAPMessage *result = NULL;
+  LDAPMessage *results = NULL;
 
-  char *attrs[] = { "uid", NULL };
+  get_ldap_connection(&ldap_conn);
+  get_ldap_results(ldap_conn, uid, "uid", &results);
+  int count = ldap_count_entries(ldap_conn, results);
 
-  char filter[MAX_FILTER];
-  sprintf(filter, "(uid=%s)", uid);
-
-  ldap_conn = get_ldap_connection();
-  ldap_error = ldap_search_ext_s(ldap_conn, config->base, LDAP_SCOPE_SUBTREE,
-                 filter, attrs, 0, NULL, NULL, &timeout, 1, &result);
-
-  if (ldap_error != 0) {
-    syslog(LOG_ERR, "%s", ldap_err2string(ldap_error));
-    ldap_msgfree(result);
-    return -1;
-  }
-  count = ldap_count_entries(ldap_conn, result);
-
-  int res = count > 0 ? 0 : 1;
-
-  ldap_msgfree(result);
+  ldap_msgfree(results);
   ldap_unbind(ldap_conn);
-  return res;
+  return count > 0 ? 0 : 1;
 }
 
 int get_public_keys(const char *uid, pubkeys_t *pubkeys)
 {
   LDAP *ldap_conn = NULL;
-  LDAPMessage *result = NULL;
+  LDAPMessage *results = NULL;
   LDAPMessage *entry  = NULL;
   BerElement* ber = NULL;
 
-  struct timeval timeout;
-  timeout.tv_sec = config->timeout;
-  timeout.tv_usec = 0;
-
-  int ldap_error;
-
-  char **vals;
-  char *attr;
-  char *attrs[] = { config->key_attr, NULL };
-
-  char filter[MAX_FILTER];
-  sprintf(filter, "(uid=%s)", uid);
-
-  ldap_conn = get_ldap_connection();
-  ldap_error = ldap_search_ext_s(ldap_conn, config->base, LDAP_SCOPE_SUBTREE,
-                 filter, attrs, 0, NULL, NULL, &timeout, 1, &result);
-
-  if (ldap_error != 0) {
-    syslog(LOG_ERR, "%s", ldap_err2string(ldap_error));
-    ldap_unbind(ldap_conn);
-    return -1;
-  }
-
-  entry = ldap_first_entry(ldap_conn, result);
-  attr  = ldap_first_attribute(ldap_conn, entry, &ber);
-  vals  = (char **)ldap_get_values(ldap_conn, entry, attr);
+  get_ldap_connection(&ldap_conn);
+  get_ldap_results(ldap_conn, uid, config->key_attr, &results);
+  entry = ldap_first_entry(ldap_conn, results);
+  char *attr = ldap_first_attribute(ldap_conn, entry, &ber);
+  char **vals = (char **)ldap_get_values(ldap_conn, entry, attr);
 
   init_pubkeys_from_ldap_values(vals, pubkeys);
 
   ber_free(ber, 0);
   ldap_memfree(attr);
   ldap_value_free(vals);
-  ldap_msgfree(result);
+  ldap_msgfree(results);
   ldap_unbind(ldap_conn);
   return 0;
 }
@@ -103,22 +63,40 @@ int get_public_keys(const char *uid, pubkeys_t *pubkeys)
 
 //==== Utility Functions ====================================================
 
-static LDAP *get_ldap_connection(void)
+static void get_ldap_connection(LDAP **ldap_conn)
 {
   int ldap_error;
   int desired_version = LDAP_VERSION3;
-  LDAP *ldap_conn = NULL;
 
-  ldap_initialize(&ldap_conn, config->uri);
-  ldap_set_option(ldap_conn, LDAP_OPT_PROTOCOL_VERSION, &desired_version);
-  ldap_error = ldap_bind_s(ldap_conn, config->dn, config->pass,
+  ldap_initialize(ldap_conn, config->uri);
+  ldap_set_option(*ldap_conn, LDAP_OPT_PROTOCOL_VERSION, &desired_version);
+  ldap_error = ldap_bind_s(*ldap_conn, config->dn, config->pass,
                  LDAP_AUTH_SIMPLE);
 
   if (ldap_error < 0) {
     syslog(LOG_ERR, "LDAP connection error");
-    return NULL;
   }
-  return ldap_conn;
+}
+
+static void get_ldap_results(LDAP *ldap_conn, const char *uid, const char *attr,
+                            LDAPMessage **results)
+{
+  struct timeval timeout;
+  timeout.tv_sec = config->timeout;
+  timeout.tv_usec = 0;
+
+  int ldap_error;
+  char *attrs[] = { attr, NULL };
+
+  char filter[MAX_FILTER];
+  sprintf(filter, "(uid=%s)", uid);
+
+  ldap_error = ldap_search_ext_s(ldap_conn, config->base, LDAP_SCOPE_SUBTREE,
+                 filter, attrs, 0, NULL, NULL, &timeout, 1, results);
+
+  if (ldap_error != 0) {
+    syslog(LOG_ERR, "%s", ldap_err2string(ldap_error));
+  }
 }
 
 static void init_pubkeys_from_ldap_values(char *vals[], pubkeys_t *pubkey)
