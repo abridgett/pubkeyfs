@@ -14,6 +14,7 @@
 ****         ****    **** ****         ************
 
 */
+#define _XOPEN_SOURCE 500
 #define FUSE_USE_VERSION 28
 #include <fuse.h>
 #include <ldap.h>
@@ -27,6 +28,7 @@
 
 #include "utils.h"
 #include "ldapapi.h"
+
 
 pkfs_config_t *config;
 

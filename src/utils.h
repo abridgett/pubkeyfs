@@ -12,7 +12,7 @@ struct pkfs_config {
   const char *uri;
   const char *pass;
   const char *key_attr;
-  long timeout;
+  long long timeout;
 };
 
 typedef struct pkfs_config pkfs_config_t;
@@ -21,3 +21,4 @@ void initialize_config(void);
 void uid_from_path(const char *path, char **uid);
 
 #endif
+

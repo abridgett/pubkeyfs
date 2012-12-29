@@ -58,5 +58,5 @@ static void set_config_from_file(config_t *cf)
   config_lookup_string(cf, "pass", &config->pass);
   config_lookup_string(cf, "base", &config->base);
   config_lookup_string(cf, "key_attr", &config->key_attr);
-  config_lookup_int(cf, "timeout", &config->timeout);
+  config_lookup_int64(cf, "timeout", &config->timeout);
 }

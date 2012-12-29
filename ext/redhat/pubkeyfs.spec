@@ -1,15 +1,12 @@
-%global real_version __VERSION__
-%global fixed_version %(echo %real_version | sed -e 's/-/_/g')
-
 Name:           pubkeyfs
-Version:        %{fixed_version}
+Version:        __VERSION__
 Release:        1%{?dist}
 Summary:        FUSE filesystem for SSH Public Keys
 
 Group:          System Environment/Daemons
 License:        MIT
 URL:            https://github.com/kelseyhightower/pubkeyfs
-Source0:        %{name}-%{real_version}.tar.gz
+Source0:        %{name}-%{version}.tar.gz
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
 BuildRequires:  gcc, fuse, fuse-libs, fuse-devel, openldap-devel, libconfig-devel, libconfig
@@ -19,7 +16,7 @@ Requires:       fuse, fuse-libs, fuse-devel, openldap-devel, libconfig-devel, li
 
 
 %prep
-%setup -q -n  %{name}-%{real_version}
+%setup -q -n  %{name}-%{version}
 
 
 %build

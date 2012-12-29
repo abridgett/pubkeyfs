@@ -1,0 +1,6 @@
+tarball:
+	@mkdir -p $(NAME)-$(VERSION)
+	@cp -pr ext LICENSE Makefile README.md src  $(NAME)-$(VERSION)
+	@tar pzcf $(NAME)-$(VERSION).tar.gz $(NAME)-$(VERSION) --exclude .gitignore
+	@rm -rf $(NAME)-$(VERSION)
+	@echo "Wrote: $(PWD)/$(NAME)-$(VERSION).tar.gz"

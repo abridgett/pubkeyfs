@@ -18,7 +18,8 @@ struct pubkeys {
 
 typedef struct pubkeys pubkeys_t;
 
-int ldap_user_check(const char *uid);
-int get_public_keys(const char *uid, pubkeys_t *pubkeys);
+int ldap_user_check(char *uid);
+int get_public_keys(char *uid, pubkeys_t *pubkeys);
 
 #endif
+
