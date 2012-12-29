@@ -147,3 +147,4 @@ static size_t calculate_total_length_of_keys(struct berval **vals)
   ++total; // Add room for final '\0'
   return total;
 }
+
