@@ -61,10 +61,19 @@ int get_public_keys(char *uid, pubkeys_t *pubkeys)
   return 0;
 }
 
+void initialize_public_keys(pubkeys_t **pubkeys)
+{
+  *pubkeys = calloc(1, sizeof(pubkeys_t));
+  (*pubkeys)->keys = NULL;
+  (*pubkeys)->size = 0;
+}
+
 void destroy_public_keys(pubkeys_t *pubkeys)
 {
-  free(pubkeys->keys);
-  free(pubkeys);
+  if (pubkeys->keys != NULL)
+    free(pubkeys->keys);
+  if (pubkeys != NULL)
+    free(pubkeys);
 }
 
 
@@ -110,7 +119,7 @@ static void get_ldap_results(LDAP *ldap_conn, char *uid, char *attr,
   }
 }
 
-static void init_pubkeys_from_ldap_values(struct berval **vals, 
+static void init_pubkeys_from_ldap_values(struct berval **vals,
     pubkeys_t *pubkey)
 {
   char *keys = format_public_keys(vals);

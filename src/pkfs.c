@@ -63,6 +63,7 @@ int pkfs_getattr(const char *path, struct stat *stbuf)
 {
   int res = 0;
   char *uid = NULL;
+  pubkeys_t *pk = NULL;
   memset(stbuf, 0, sizeof(struct stat));
 
   uid_from_path(path, &uid);
@@ -70,7 +71,7 @@ int pkfs_getattr(const char *path, struct stat *stbuf)
   if (strcmp(path, "/") == 0) {
     initialize_directory_stats(&stbuf);
   } else if (ldap_user_check(uid) == 0) {
-    pubkeys_t *pk = calloc(1, sizeof(pubkeys_t));
+    initialize_public_keys(&pk);
     int size = (get_public_keys(uid, pk) != 0) ? 0 : pk->size;
     initialize_file_stats(&stbuf, size);
     destroy_public_keys(pk);
@@ -85,15 +86,15 @@ int pkfs_getattr(const char *path, struct stat *stbuf)
 static int pkfs_open(const char *path, struct fuse_file_info *fi)
 {
   int fd;
-  char *pubkey_temp_file = NULL;
   char *uid = NULL;
-
-  pubkeys_t *pk = calloc(1, sizeof(pubkeys_t));
+  pubkeys_t *pk = NULL;
+  char *pubkey_temp_file = NULL;
 
   uid_from_path(path, &uid);
+  initialize_public_keys(&pk);
 
   if (get_public_keys(uid, pk) != 0) {
-    free(pk);
+    destroy_public_keys(pk);
     return -ENOENT;
   }
 

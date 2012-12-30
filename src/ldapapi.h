@@ -20,6 +20,7 @@ typedef struct pubkeys pubkeys_t;
 
 int ldap_user_check(char *uid);
 int get_public_keys(char *uid, pubkeys_t *pubkeys);
+void initialize_public_keys(pubkeys_t **pubkeys);
 void destroy_public_keys(pubkeys_t *pubkeys);
 
 #endif
