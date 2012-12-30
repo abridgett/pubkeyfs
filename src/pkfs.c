@@ -73,8 +73,7 @@ int pkfs_getattr(const char *path, struct stat *stbuf)
     pubkeys_t *pk = calloc(1, sizeof(pubkeys_t));
     int size = (get_public_keys(uid, pk) != 0) ? 0 : pk->size;
     initialize_file_stats(&stbuf, size);
-    free(pk->keys);
-    free(pk);
+    destroy_public_keys(pk);
   } else {
     res = -ENOENT;;
   }
@@ -105,8 +104,7 @@ static int pkfs_open(const char *path, struct fuse_file_info *fi)
   close(fd);
   fi->fh = (unsigned long)pubkey_temp_file;
 
-  free(pk->keys);
-  free(pk);
+  destroy_public_keys(pk);
   free(uid);
   return 0;
 }

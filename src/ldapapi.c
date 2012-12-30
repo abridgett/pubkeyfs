@@ -61,6 +61,12 @@ int get_public_keys(char *uid, pubkeys_t *pubkeys)
   return 0;
 }
 
+void destroy_public_keys(pubkeys_t *pubkeys)
+{
+  free(pubkeys->keys);
+  free(pubkeys);
+}
+
 
 //==== Utility Functions ====================================================
 
