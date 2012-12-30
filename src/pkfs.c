@@ -29,8 +29,9 @@
 #include "utils.h"
 #include "ldapapi.h"
 
-
 pkfs_config_t *config;
+static void cache_pubkeys_on_disk(pubkeys_t *pk, uint64_t *fh);
+
 
 void *pkfs_init(struct fuse_conn_info *conn)
 {
@@ -76,7 +77,7 @@ int pkfs_getattr(const char *path, struct stat *stbuf)
     initialize_file_stats(&stbuf, size);
     destroy_public_keys(pk);
   } else {
-    res = -ENOENT;;
+    res = -ENOENT;
   }
 
   free(uid);
@@ -85,29 +86,22 @@ int pkfs_getattr(const char *path, struct stat *stbuf)
 
 static int pkfs_open(const char *path, struct fuse_file_info *fi)
 {
-  int fd;
+  int res = 0;
   char *uid = NULL;
   pubkeys_t *pk = NULL;
-  char *pubkey_temp_file = NULL;
 
   uid_from_path(path, &uid);
   initialize_public_keys(&pk);
 
-  if (get_public_keys(uid, pk) != 0) {
-    destroy_public_keys(pk);
-    return -ENOENT;
+  if (get_public_keys(uid, pk) == 0) {
+    cache_pubkeys_on_disk(pk, &(fi->fh));
+  } else {
+    res = -ENOENT;
   }
-
-  pubkey_temp_file = strdup("/tmp/pkfs-XXXXXX");
-  fd = mkstemp(pubkey_temp_file);
-
-  write(fd, pk->keys, strlen(pk->keys));
-  close(fd);
-  fi->fh = (unsigned long)pubkey_temp_file;
 
   destroy_public_keys(pk);
   free(uid);
-  return 0;
+  return res;
 }
 
 static int pkfs_flush(const char *path, struct fuse_file_info *fi)
@@ -177,3 +171,15 @@ int main(int argc, char *argv[])
   return fuse_main(argc, argv, &pkfs_oper, NULL);
 }
 
+//==== Utility Functions ====================================================
+static void cache_pubkeys_on_disk(pubkeys_t *pk, uint64_t *fh)
+{
+  int fd;
+  char *tempfile = NULL;
+
+  tempfile = strdup("/tmp/pkfs-XXXXXX");
+  fd = mkstemp(tempfile);
+  write(fd, pk->keys, pk->size);
+  close(fd);
+  *fh = (unsigned long)tempfile;
+}
