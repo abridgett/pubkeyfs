@@ -31,6 +31,8 @@
 
 pkfs_config_t *config;
 static void cache_pubkeys_on_disk(pubkeys_t *pk, uint64_t *fh);
+static void initialize_directory_stats(struct stat **stbuf);
+static void initialize_file_stats(struct stat **stbuf, int size);
 
 
 void *pkfs_init(struct fuse_conn_info *conn)
@@ -38,26 +40,6 @@ void *pkfs_init(struct fuse_conn_info *conn)
   config = calloc(1, sizeof(pkfs_config_t));
   initialize_config();
   return NULL;
-}
-
-static void initialize_directory_stats(struct stat **stbuf)
-{
-  (*stbuf)->st_mode = S_IFDIR | 0755;
-  (*stbuf)->st_nlink = 2;
-}
-
-static void initialize_file_stats(struct stat **stbuf, int size)
-{
-  time_t current_time = time(NULL);
-
-  (*stbuf)->st_size = size;
-  (*stbuf)->st_uid = geteuid();
-  (*stbuf)->st_gid = getegid();
-  (*stbuf)->st_mode = S_IFREG | 0444;
-  (*stbuf)->st_nlink = 1;
-  (*stbuf)->st_ctime = current_time;
-  (*stbuf)->st_mtime = current_time;
-  (*stbuf)->st_atime = current_time;
 }
 
 int pkfs_getattr(const char *path, struct stat *stbuf)
@@ -183,3 +165,24 @@ static void cache_pubkeys_on_disk(pubkeys_t *pk, uint64_t *fh)
   close(fd);
   *fh = (unsigned long)tempfile;
 }
+
+static void initialize_directory_stats(struct stat **stbuf)
+{
+  (*stbuf)->st_mode = S_IFDIR | 0755;
+  (*stbuf)->st_nlink = 2;
+}
+
+static void initialize_file_stats(struct stat **stbuf, int size)
+{
+  time_t current_time = time(NULL);
+
+  (*stbuf)->st_size = size;
+  (*stbuf)->st_uid = geteuid();
+  (*stbuf)->st_gid = getegid();
+  (*stbuf)->st_mode = S_IFREG | 0444;
+  (*stbuf)->st_nlink = 1;
+  (*stbuf)->st_ctime = current_time;
+  (*stbuf)->st_mtime = current_time;
+  (*stbuf)->st_atime = current_time;
+}
+
