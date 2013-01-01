@@ -18,7 +18,7 @@ extern pkfs_config_t *config;
 static void get_ldap_connection(LDAP **ldap_conn);
 static void get_ldap_results(LDAP *ldap_conn, char *uid, char *attr,
               LDAPMessage **results);
-static void init_pubkeys_from_ldap_values(struct berval **vals,
+static void extract_pubkeys_from_ldap_values(struct berval **vals,
               pubkeys_t *pubkey);
 static size_t calculate_total_length_of_keys(struct berval **vals);
 static char *format_public_keys(struct berval **vals);
@@ -49,7 +49,7 @@ int get_public_keys(char *uid, pubkeys_t *pubkeys)
   get_ldap_connection(&ldap_conn);
   get_ldap_results(ldap_conn, uid, (char *)config->key_attr, &results);
   get_ldap_values(ldap_conn, results, &vals);
-  init_pubkeys_from_ldap_values(vals, pubkeys);
+  extract_pubkeys_from_ldap_values(vals, pubkeys);
 
   ldap_value_free_len(vals);
   ldap_msgfree(results);
@@ -115,7 +115,7 @@ static void get_ldap_results(LDAP *ldap_conn, char *uid, char *attr,
   }
 }
 
-static void init_pubkeys_from_ldap_values(struct berval **vals,
+static void extract_pubkeys_from_ldap_values(struct berval **vals,
     pubkeys_t *pubkey)
 {
   char *keys = format_public_keys(vals);
