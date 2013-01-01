@@ -74,7 +74,6 @@ void destroy_public_keys(pubkeys_t *pubkeys)
 
 
 //==== Utility Functions ====================================================
-
 static void get_ldap_connection(LDAP **ldap_conn)
 {
   int ldap_error;
@@ -116,7 +115,7 @@ static void get_ldap_results(LDAP *ldap_conn, char *uid, char *attr,
 }
 
 static void extract_pubkeys_from_ldap_values(struct berval **vals,
-    pubkeys_t *pubkey)
+  pubkeys_t *pubkey)
 {
   char *keys = format_public_keys(vals);
   pubkey->keys = strdup(keys);
