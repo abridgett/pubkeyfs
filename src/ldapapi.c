@@ -13,6 +13,7 @@
 #include "ldapapi.h"
 #include "utils.h"
 
+/* Global configuration */
 extern pkfs_config_t *config;
 
 static void get_ldap_connection(LDAP **ldap_conn);

@@ -29,7 +29,9 @@
 #include "utils.h"
 #include "ldapapi.h"
 
+/* Global configuration */
 pkfs_config_t *config;
+
 static void cache_pubkeys_on_disk(pubkeys_t *pk, uint64_t *fh);
 static void initialize_directory_stats(struct stat **stbuf);
 static void initialize_file_stats(struct stat **stbuf, int size);

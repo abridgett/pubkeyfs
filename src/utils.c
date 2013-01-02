@@ -11,10 +11,12 @@
 
 #define PKFS_CONFIG_FILE "/etc/pkfs.conf"
 
+/* Global configuration */
+extern pkfs_config_t *config;
+
 static void set_config_defaults(void);
 static void set_config_from_file(config_t *cf);
 
-extern pkfs_config_t *config;
 
 void initialize_config(void)
 {
