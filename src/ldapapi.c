@@ -32,7 +32,7 @@ int ldap_user_check(char *uid)
   LDAPMessage *results = NULL;
 
   get_ldap_connection(&ldap_conn);
-  get_ldap_results(ldap_conn, uid, "uid", &results);
+  get_ldap_results(ldap_conn, uid, (char *)config->user_attr, &results);
   int count = ldap_count_entries(ldap_conn, results);
 
   ldap_msgfree(results);
@@ -104,7 +104,7 @@ static void get_ldap_results(LDAP *ldap_conn, char *uid, char *attr,
   char *attrs[] = { attr, NULL };
 
   char filter[MAX_FILTER];
-  sprintf(filter, "(uid=%s)", uid);
+  sprintf(filter, "(%s=%s)", config->user_attr, uid);
 
   ldap_error = ldap_search_ext_s(ldap_conn, config->base, LDAP_SCOPE_SUBTREE,
                  filter, attrs, 0, NULL, NULL, &timeout, 1, results);

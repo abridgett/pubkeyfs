@@ -11,6 +11,7 @@ struct pkfs_config {
   const char *dn;
   const char *uri;
   const char *pass;
+  const char *user_attr;
   const char *key_attr;
   long long timeout;
 };

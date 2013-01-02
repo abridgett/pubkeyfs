@@ -48,6 +48,7 @@ static void set_config_defaults(void)
   config->pass = NULL;
   config->base = NULL;
   config->timeout = 30;
+  config->user_attr = strdup("uid");
   config->key_attr = strdup("sshPublicKey");
 }
 
@@ -58,6 +59,7 @@ static void set_config_from_file(config_t *cf)
   config_lookup_string(cf, "pass", &config->pass);
   config_lookup_string(cf, "base", &config->base);
   config_lookup_string(cf, "key_attr", &config->key_attr);
+  config_lookup_string(cf, "user_attr", &config->user_attr);
   config_lookup_int64(cf, "timeout", &config->timeout);
 }
 
