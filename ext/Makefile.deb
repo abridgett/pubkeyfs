@@ -1,4 +1,4 @@
 deb:
-	@mkdir debian
-	@cp -a ext/debian/* debian/
+	@rm -rf debian
+	@cp -a ext/debian debian
 	dpkg-buildpackage
