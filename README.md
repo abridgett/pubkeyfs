@@ -4,13 +4,13 @@
 
 ### Debian
 
-**Edit** `/etc/apt/sources.list.d/pubkeyfs.list` 
-    
-    deb http://apt.pubkeyfs.org/apt/debian Squeeze main
+**Edit** `/etc/apt/sources.list.d/pubkeyfs.list`
+
+    deb http://apt.pubkeyfs.org/debian Squeeze main
 
 -
 
-    wget http://apt.pubkeyfs.org/apt/debian/conf/pubkeyfs.gpg.key
+    wget http://apt.pubkeyfs.org/debian/conf/pubkeyfs.gpg.key
     apt-key add pubkeyfs.gpg.key
     apt-get update
     apt-get install pubkeyfs
@@ -37,11 +37,11 @@
 
     uri  = "ldaps://ldap.example.com";
     dn   = "cn=root,dc=example,dc=com";
-    pass = secret;
+    pass = "secret";
     base = "ou=users,dc=example,dc=com";
     key_attr = "sshPublicKey";
-    
-    
+
+
 ### key_attr
 The `key_attr` setting should match the name of the LDAP attribute that you are
 using to store user ssh public keys in the directory. Any attribute will do, but
@@ -98,7 +98,7 @@ Building rpms is easy.
     make srpm
 
 From the output of that command, you can either run:
-   
+
     rpmbuild --rebuild pubkeyfs-*.src.rpm
 
 or throw the srpm in mock to build for multiple EL/Fedora targets.
