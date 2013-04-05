@@ -2,7 +2,7 @@ Source: pubkeyfs
 Section: otherosfs
 Priority: optional
 Maintainer: Kelsey Hightower <kelsey.hightower@gmail.com>
-Build-Depends: debhelper (>= 8.0.0), build-essential, make, clang, libc-dev, libfuse2, libconfig-dev, libldap2-dev
+Build-Depends: debhelper (>= 8.0.0), build-essential, make, clang, libc-dev, libfuse-dev, libconfig-dev, libldap2-dev
 Standards-Version: 3.8.4
 Homepage: https://github.com/kelseyhightower/pubkeyfs
 
