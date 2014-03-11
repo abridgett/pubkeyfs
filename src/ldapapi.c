@@ -17,7 +17,7 @@
 extern pkfs_config_t *config;
 
 static void get_ldap_connection(LDAP **ldap_conn);
-static void get_ldap_results(LDAP *ldap_conn, char *uid, char *attr,
+static int get_ldap_results(LDAP *ldap_conn, char *uid, char *attr,
               LDAPMessage **results);
 static void extract_pubkeys_from_ldap_values(struct berval **vals,
               pubkeys_t *pubkey);
@@ -31,11 +31,14 @@ int ldap_user_check(char *uid)
 {
   LDAP *ldap_conn = NULL;
   LDAPMessage *results = NULL;
+  int res = 0;
+  int count = 0;
 
   get_ldap_connection(&ldap_conn);
-  get_ldap_results(ldap_conn, uid, (char *)config->user_attr, &results);
-  int count = ldap_count_entries(ldap_conn, results);
-
+  res = get_ldap_results(ldap_conn, uid, (char *)config->user_attr, &results);
+  if (res == 0) {
+    count = ldap_count_entries(ldap_conn, results);
+  }
   ldap_msgfree(results);
   ldap_unbind_ext_s(ldap_conn, NULL, NULL);
   return count > 0 ? 0 : 1;
@@ -46,16 +49,18 @@ int get_public_keys(char *uid, pubkeys_t *pubkeys)
   LDAP *ldap_conn = NULL;
   LDAPMessage *results = NULL;
   struct berval **vals = NULL;
+  int res = 0;
 
   get_ldap_connection(&ldap_conn);
-  get_ldap_results(ldap_conn, uid, (char *)config->key_attr, &results);
-  get_ldap_values(ldap_conn, results, &vals);
-  extract_pubkeys_from_ldap_values(vals, pubkeys);
-
-  ldap_value_free_len(vals);
+  res = get_ldap_results(ldap_conn, uid, (char *)config->key_attr, &results);
+  if (res == 0) {
+    get_ldap_values(ldap_conn, results, &vals);
+    extract_pubkeys_from_ldap_values(vals, pubkeys);
+    ldap_value_free_len(vals);
+  }
   ldap_msgfree(results);
   ldap_unbind_ext_s(ldap_conn, NULL, NULL);
-  return 0;
+  return res;
 }
 
 void initialize_public_keys(pubkeys_t **pubkeys)
@@ -94,7 +99,7 @@ static void get_ldap_connection(LDAP **ldap_conn)
   }
 }
 
-static void get_ldap_results(LDAP *ldap_conn, char *uid, char *attr,
+static int get_ldap_results(LDAP *ldap_conn, char *uid, char *attr,
   LDAPMessage **results)
 {
   struct timeval timeout;
@@ -113,6 +118,7 @@ static void get_ldap_results(LDAP *ldap_conn, char *uid, char *attr,
   if (ldap_error != 0) {
     syslog(LOG_ERR, "%s", ldap_err2string(ldap_error));
   }
+  return ldap_error;
 }
 
 static void extract_pubkeys_from_ldap_values(struct berval **vals,
