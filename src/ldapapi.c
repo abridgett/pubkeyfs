@@ -23,7 +23,7 @@ static void extract_pubkeys_from_ldap_values(struct berval **vals,
               pubkeys_t *pubkey);
 static size_t calculate_total_length_of_keys(struct berval **vals);
 static char *format_public_keys(struct berval **vals);
-static void get_ldap_values(LDAP *ldap_conn, LDAPMessage *results,
+static int get_ldap_values(LDAP *ldap_conn, LDAPMessage *results,
               struct berval ***vals);
 
 
@@ -58,9 +58,10 @@ int get_public_keys(char *uid, pubkeys_t *pubkeys)
   }
   res = get_ldap_results(ldap_conn, uid, (char *)config->key_attr, &results);
   if (res == 0) {
-    get_ldap_values(ldap_conn, results, &vals);
-    extract_pubkeys_from_ldap_values(vals, pubkeys);
-    ldap_value_free_len(vals);
+    if ((res = get_ldap_values(ldap_conn, results, &vals)) == 0) {
+      extract_pubkeys_from_ldap_values(vals, pubkeys);
+      ldap_value_free_len(vals);
+    }
   }
   ldap_msgfree(results);
   ldap_unbind_ext_s(ldap_conn, NULL, NULL);
@@ -172,17 +173,23 @@ static size_t calculate_total_length_of_keys(struct berval **vals)
   return total;
 }
 
-static void get_ldap_values(LDAP *ldap_conn, LDAPMessage *results,
+static int get_ldap_values(LDAP *ldap_conn, LDAPMessage *results,
   struct berval ***vals)
 {
   char *attr = NULL;
   LDAPMessage *entry = NULL;
   BerElement* ber = NULL;
+  int res = 1;
 
   entry = ldap_first_entry(ldap_conn, results);
-  attr  = ldap_first_attribute(ldap_conn, entry, &ber);
-  *vals = ldap_get_values_len(ldap_conn, entry, attr);
+  if (entry) {
+    if ((attr  = ldap_first_attribute(ldap_conn, entry, &ber)) != NULL) { 
+      *vals = ldap_get_values_len(ldap_conn, entry, attr);
 
-  ber_free(ber, 0);
-  ldap_memfree(attr);
+      ber_free(ber, 0);
+      ldap_memfree(attr);
+      res = 0;
+    }
+  }
+  return res;
 }
