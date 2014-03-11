@@ -16,7 +16,7 @@
 /* Global configuration */
 extern pkfs_config_t *config;
 
-static void get_ldap_connection(LDAP **ldap_conn);
+static int get_ldap_connection(LDAP **ldap_conn);
 static int get_ldap_results(LDAP *ldap_conn, char *uid, char *attr,
               LDAPMessage **results);
 static void extract_pubkeys_from_ldap_values(struct berval **vals,
@@ -34,7 +34,9 @@ int ldap_user_check(char *uid)
   int res = 0;
   int count = 0;
 
-  get_ldap_connection(&ldap_conn);
+  if ((res = get_ldap_connection(&ldap_conn)) != 0) {
+    return res;
+  }
   res = get_ldap_results(ldap_conn, uid, (char *)config->user_attr, &results);
   if (res == 0) {
     count = ldap_count_entries(ldap_conn, results);
@@ -51,7 +53,9 @@ int get_public_keys(char *uid, pubkeys_t *pubkeys)
   struct berval **vals = NULL;
   int res = 0;
 
-  get_ldap_connection(&ldap_conn);
+  if ((res = get_ldap_connection(&ldap_conn)) != 0) {
+    return res;
+  }
   res = get_ldap_results(ldap_conn, uid, (char *)config->key_attr, &results);
   if (res == 0) {
     get_ldap_values(ldap_conn, results, &vals);
@@ -80,7 +84,7 @@ void destroy_public_keys(pubkeys_t *pubkeys)
 
 
 //==== Utility Functions ====================================================
-static void get_ldap_connection(LDAP **ldap_conn)
+static int get_ldap_connection(LDAP **ldap_conn)
 {
   int ldap_error;
   int desired_version = LDAP_VERSION3;
@@ -97,6 +101,7 @@ static void get_ldap_connection(LDAP **ldap_conn)
   if (ldap_error < 0) {
     syslog(LOG_ERR, "LDAP connection error");
   }
+  return ldap_error;
 }
 
 static int get_ldap_results(LDAP *ldap_conn, char *uid, char *attr,
