@@ -76,10 +76,12 @@ void initialize_public_keys(pubkeys_t **pubkeys)
 
 void destroy_public_keys(pubkeys_t *pubkeys)
 {
-  if (pubkeys->keys != NULL)
-    free(pubkeys->keys);
-  if (pubkeys != NULL)
+  if (pubkeys != NULL) {
+    if (pubkeys->keys != NULL) {
+      free(pubkeys->keys);
+    }
     free(pubkeys);
+ }
 }
 
 
