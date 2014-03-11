@@ -1,3 +1,9 @@
+pubkeyfs (0.2-1.1) unstable; urgency=low
+
+  * Additional error checking (https://github.com/kelseyhightower/pubkeyfs/issues/14)
+
+ -- Adrian Bridgett <adrian@smop.co.uk>  Tue, 11 Mar 2014 16:42:09 +0000
+
 pubkeyfs (0.1-1) unstable; urgency=low
 
   * Initial release
