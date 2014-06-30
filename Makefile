@@ -1,7 +1,7 @@
 NAME        = pubkeyfs
 CC          = gcc -Wall
 CFLAGS      = -std=c99 -pthread -D_GNU_SOURCE
-LIBS        = -lldap -lfuse -lconfig
+LIBS        = -lldap -llber -lfuse -lconfig
 FUSE_CFLAGS = -D_FILE_OFFSET_BITS=64
 VERSION     = 0.0.1
 PREFIX      = /usr
