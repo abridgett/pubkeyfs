@@ -70,7 +70,7 @@ Finally mount pkfs using the pkfs binary:
 
 Or add the following entry to fstab:
 
-    /usr/bin/pkfs           /var/lib/publickeys     fuse    allow_other     0 0
+    /usr/bin/pkfs           /var/lib/publickeys     fuse    allow_other,_netdev     0 0
 
 At this point you should have a read-only pseudo filesystem mounted under
 `/var/lib/publickeys`.
